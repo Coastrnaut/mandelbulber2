@@ -16,10 +16,15 @@ jobs:
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
             sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
+            # Create a local include mirror directory inside your build run space
+            mkdir -p ~/mandelbulber2/local_include/OpenCL
+            # Copy or link the generic OpenCL headers into the Mac-style naming directory
+            ln -s /opt/homebrew/opt/opencl-headers/include/CL/* ~/mandelbulber2/local_include/OpenCL/
+            # Also keep a regular fallback copy just in case
+            ln -s /opt/homebrew/opt/opencl-headers/include/CL ~/mandelbulber2/local_include/CL
       - run:
           name: Build
           command: |
-            export QTDIR="/usr/local/opt/qt5"
             export PATH="$QTDIR/bin:$PATH"
             export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
             export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
@@ -30,8 +35,8 @@ jobs:
             mkdir -p $BUILD
             # build operation
             cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro \
-            QMAKE_CXXFLAGS+="-I/opt/homebrew/opt/opencl-headers/include" \
-            QMAKE_CFLAGS+="-I/opt/homebrew/opt/opencl-headers/include"
+            QMAKE_CXXFLAGS+="-I$SRC/local_include" \
+            QMAKE_CFLAGS+="-I$SRC/local_include"
             cd $BUILD && make -j8
       - run:
           name: Pack
