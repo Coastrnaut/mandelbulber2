@@ -13,75 +13,103 @@ jobs:
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
             brew update
-            brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
+            brew install llvm qt5 gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
+            
             # Create the expected directory structure if it doesn't exist
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
             sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
+            
             # Clean and recreate build directory structure
             rm -rf "$BUILD"
             mkdir -p "$BUILD"
+            
             # 1. Clone the repository into a clean local directory
             CLONE_DIR="$BUILD/OpenCL-CLHPP-Repo"
             git clone https://github.com/KhronosGroup/OpenCL-CLHPP.git "$CLONE_DIR"
+            
             # 2. Build the exact OpenCL folder structure required by Mandelbulber Mac profiles
             mkdir -p "$BUILD/OpenCL"
+            
             # 3. Copy the base contents safely into the folder
             cp -vfr "$CLONE_DIR/include/CL/"* "$BUILD/OpenCL/"
+            
             # 4. Generate the missing cl.hpp file name mapping using the universal source base
             cp -vf "$BUILD/OpenCL/opencl.hpp" "$BUILD/OpenCL/cl.hpp"
       - run:
           name: Build
           command: |
+            # Inject Homebrew Apple Silicon Qt paths dynamically into the shell environment
+            export QTDIR="/opt/homebrew/opt/qt5"
+            export PATH="$QTDIR/bin:$PATH"
+            export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
+            export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
+
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
+            
             # build operation
             cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro \
-            QMAKE_CXXFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120" \
-            QMAKE_CFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120"
+              QMAKE_CC=/opt/homebrew/opt/llvm/bin/clang \
+              QMAKE_CXX=/opt/homebrew/opt/llvm/bin/clang++ \
+              QMAKE_CXXFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120" \
+              QMAKE_CFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120"
+              
             cd $BUILD && make -j8
+            
             # binary requirement
             binary=$BUILD/mandelbulber2.app/Contents/MacOS/mandelbulber2
-            if [ -f $binary ];
-            then
-            echo "$binary found"
+            if [ -f $binary ]; then
+              echo "$binary found"
             else
-            echo "Error Building $binary"
-            exit
+              echo "Error Building $binary"
+              exit 1
             fi
       - run:
           name: Pack
           command: |
+            # Inject Homebrew Apple Silicon Qt paths so macdeployqt is found
+            export QTDIR="/opt/homebrew/opt/qt5"
+            export PATH="$QTDIR/bin:$PATH"
+
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
-            #macOS build package
             SUPPORT=$SRC/mandelbulber2
             PACK=$BUILD/mandelbulber2.app
-            #making directories
-            #mkdir -vp "$PACK"
-            #copying source files	
+            
+            # Correct macOS bundle architecture pathing
+            RESOURCES="$PACK/Contents/Resources"
+            mkdir -p "$RESOURCES"
+            
+            # copying source files directly into bundle layers
             cp -vr "$SUPPORT/src" "$PACK/"
             cp -vr "$SUPPORT/qt" "$PACK/"
-            #cp -vr "$SUPPORT/opencl" "$PACK/"
-            #copying makefiles
-            mkdir -vp "$PACK/makefiles"
-            cp -v "$SUPPORT/qmake/mandelbulber.pro" "$PACK/makefiles/"
-            cp -v "$SUPPORT/qmake/mandelbulber-opencl-mac.pro" "$PACK/makefiles/"
-            cp -v "$SUPPORT/qmake/common.pri" "$PACK/makefiles/"
-            #copying documentation files
-            mkdir -vp "$PACK/doc"
-            cp -v "$SUPPORT/deploy/NEWS" "$PACK/doc"
+            
+            # copying makefiles into Apple standard Resources subfolders
+            mkdir -vp "$RESOURCES/makefiles"
+            cp -v "$SUPPORT/qmake/mandelbulber.pro" "$RESOURCES/makefiles/"
+            cp -v "$SUPPORT/qmake/mandelbulber-opencl-mac.pro" "$RESOURCES/makefiles/"
+            cp -v "$SUPPORT/qmake/common.pri" "$RESOURCES/makefiles/"
+            
+            # copying documentation files into standard Resources subfolders
+            mkdir -vp "$RESOURCES/doc"
+            cp -v "$SUPPORT/deploy/NEWS" "$RESOURCES/doc/"
+            
             DOCFILE="$(curl -s https://api.github.com/repos/buddhi1980/mandelbulber_doc/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)"
-            echo $DOCFILE
-            wget -O "$PACK/doc/Mandelbulber_Manual.pdf" $DOCFILE
-            #copy c++abi
+            echo "Downloading manual from: $DOCFILE"
+            wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE"
+            
+            # copy c++abi
             mkdir -p "$PACK/Contents/Frameworks/"
             cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
-            cp "/usr/lib/libc++abi.1.dylib" "$PACK/Contents/Frameworks/"
-            #rename to libc++abi.1.dylib
-            cp "$PACK/Contents/Frameworks/libc++abi.dylib" "$PACK/Contents/Frameworks/libc++abi.1.dylib"
+            
+            # Fix duplicate copying strategy to maintain symlink behavior
+            ln -sf "libc++abi.dylib" "$PACK/Contents/Frameworks/libc++abi.1.dylib"
+            
+            # Deploy Qt frameworks and build dmg
             cd $BUILD && macdeployqt mandelbulber2.app -dmg
-            #artifacts
+            
+            # artifacts compilation
             mkdir -p ~/mandelbulber2/build/artifacts/
             cd ~/mandelbulber2/build/ && 7z a artifacts/mandelbulber2-macOS-$CIRCLE_SHA1.zip mandelbulber2.app
             mv ~/mandelbulber2/build/mandelbulber2.dmg ~/mandelbulber2/build/artifacts/mandelbulber2-macOS-$CIRCLE_SHA1.dmg
@@ -89,13 +117,8 @@ jobs:
       - store_artifacts:
           path: ~/mandelbulber2/build/artifacts/
 
-# TODO: Build App Store version on CI
-
 workflows:
   version: 2
   build-and-deploy:
     jobs:
       - build-and-pack
-
-
-
