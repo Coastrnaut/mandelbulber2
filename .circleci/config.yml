@@ -19,6 +19,10 @@ jobs:
             export PATH="$QTDIR/bin:$PATH"
             export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
             export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
+            # Create the expected directory structure if it doesn't exist
+            sudo mkdir -p /usr/local/opt
+            # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
+            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
             sh ~/mandelbulber2/mandelbulber2/mac/build_deploy.sh
       - run:
           name: Pack
