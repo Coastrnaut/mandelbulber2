@@ -13,38 +13,32 @@ jobs:
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
             brew update
-            brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget opencl-headers
+            brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget opencl-clhpp-headers
             # Create the expected directory structure if it doesn't exist
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
             sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
             # Clean and recreate build directory structure
             rm -rf "$BUILD"
-            rm -rf "$SRC/local_include"
             mkdir -p "$BUILD"
-            # 1. FIX THE MISSING C++ HEADERS: Create the local include target trees
-            mkdir -p "$SRC/local_include/CL"
-            mkdir -p "$SRC/local_include/OpenCL"
-            # 2. ALIAS cl2.hpp AS cl.hpp SO THE MANDELBULBER MAC MACROS CAN FIND IT
-            # This maps the modern Homebrew C++ wrapper to the legacy file name requested at line 58
-            OPENCL_HEADERS_DIR="/opt/homebrew/opt/opencl-headers/include/CL"
-            cp "$OPENCL_HEADERS_DIR/cl2.hpp" "$SRC/local_include/CL/cl.hpp"
-            cp "$OPENCL_HEADERS_DIR/cl2.hpp" "$SRC/local_include/OpenCL/cl.hpp"
-            # Also bring over standard OpenCL base dependencies just in case
-            cp "$OPENCL_HEADERS_DIR/"*.h "$SRC/local_include/CL/"
-            cp "$OPENCL_HEADERS_DIR/"*.h "$SRC/local_include/OpenCL/"
+            # 1. Clone the repository into a clean local directory
+            CLONE_DIR="$BUILD/OpenCL-CLHPP-Repo"
+            git clone https://github.com/KhronosGroup/OpenCL-CLHPP.git "$CLONE_DIR"
+            # 2. Build the exact OpenCL folder structure required by Mandelbulber Mac profiles
+            mkdir -p "$BUILD/OpenCL"
+            # 3. Copy the base contents safely into the folder
+            cp -vfr "$CLONE_DIR/include/CL/"* "$BUILD/OpenCL/"
+            # 4. Generate the missing cl.hpp file name mapping using the universal source base
+            cp -vf "$BUILD/OpenCL/opencl.hpp" "$BUILD/OpenCL/cl.hpp"
       - run:
           name: Build
           command: |
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
-            # Clean build directory
-            rm -rf $BUILD
-            mkdir -p $BUILD
             # build operation
             cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro \
-            QMAKE_CXXFLAGS+="-I$SRC/local_include -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120" \
-            QMAKE_CFLAGS+="-I$SRC/local_include -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120"
+            QMAKE_CXXFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120" \
+            QMAKE_CFLAGS+="-I$BUILD -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120"
             cd $BUILD && make -j8
       - run:
           name: Pack
