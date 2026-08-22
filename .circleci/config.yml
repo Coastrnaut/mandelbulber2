@@ -10,24 +10,31 @@ jobs:
       - run:
           name: Dependencies
           command: |
+            SRC=~/mandelbulber2/
+            BUILD=$SRC/build/
             brew update
             brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget opencl-headers
             # Create the expected directory structure if it doesn't exist
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
-            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
-            # Create a local include mirror directory inside your build run space
-            mkdir -p ~/mandelbulber2/local_include/OpenCL
-            # Copy or link the generic OpenCL headers into the Mac-style naming directory
-            ln -s /opt/homebrew/opt/opencl-headers/include/CL/* ~/mandelbulber2/local_include/OpenCL/
-            # Also keep a regular fallback copy just in case
-            ln -s /opt/homebrew/opt/opencl-headers/include/CL ~/mandelbulber2/local_include/CL
+            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm# Clean and recreate build directory structure
+            rm -rf "$BUILD"
+            rm -rf "$SRC/local_include"
+            mkdir -p "$BUILD"
+            # 1. FIX THE MISSING C++ HEADERS: Create the local include target trees
+            mkdir -p "$SRC/local_include/CL"
+            mkdir -p "$SRC/local_include/OpenCL"
+            # 2. ALIAS cl2.hpp AS cl.hpp SO THE MANDELBULBER MAC MACROS CAN FIND IT
+            # This maps the modern Homebrew C++ wrapper to the legacy file name requested at line 58
+            OPENCL_HEADERS_DIR="/opt/homebrew/opt/opencl-headers/include/CL"
+            cp "$OPENCL_HEADERS_DIR/cl2.hpp" "$SRC/local_include/CL/cl.hpp"
+            cp "$OPENCL_HEADERS_DIR/cl2.hpp" "$SRC/local_include/OpenCL/cl.hpp"
+            # Also bring over standard OpenCL base dependencies just in case
+            cp "$OPENCL_HEADERS_DIR/"*.h "$SRC/local_include/CL/"
+            cp "$OPENCL_HEADERS_DIR/"*.h "$SRC/local_include/OpenCL/"
       - run:
           name: Build
           command: |
-            export PATH="$QTDIR/bin:$PATH"
-            export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
-            export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
             # Clean build directory
@@ -35,8 +42,8 @@ jobs:
             mkdir -p $BUILD
             # build operation
             cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro \
-            QMAKE_CXXFLAGS+="-I$SRC/local_include" \
-            QMAKE_CFLAGS+="-I$SRC/local_include"
+            QMAKE_CXXFLAGS+="-I$SRC/local_include -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120" \
+            QMAKE_CFLAGS+="-I$SRC/local_include -DCL_SILENCE_DEPRECATION -DCL_TARGET_OPENCL_VERSION=120"
             cd $BUILD && make -j8
       - run:
           name: Pack
