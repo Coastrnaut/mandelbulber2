@@ -45,28 +45,30 @@ fi
 #macOS build package
 SUPPORT=$SRC/mandelbulber2
 PACK=$BUILD/mandelbulber2.app
+RESOURCES="$PACK/Contents/Resources"
 #making directories
 #mkdir -vp "$PACK"
+mkdir -p "$RESOURCES"
 
 #copying source files	
 cp -vr "$SUPPORT/src" "$PACK/"
 cp -vr "$SUPPORT/qt" "$PACK/"
 #cp -vr "$SUPPORT/opencl" "$PACK/"
-#copying makefiles
-mkdir -vp "$PACK/makefiles"
-cp -v "$SUPPORT/qmake/mandelbulber.pro" "$PACK/makefiles/"
-cp -v "$SUPPORT/qmake/mandelbulber-opencl-mac.pro" "$PACK/makefiles/"
-cp -v "$SUPPORT/qmake/common.pri" "$PACK/makefiles/"
-#copying documentation files
-mkdir -vp "$PACK/doc"
-cp -v "$SUPPORT/deploy/NEWS" "$PACK/doc"
-DOCFILE="$(curl -s https://api.github.com/repos/buddhi1980/mandelbulber_doc/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)"
-echo $DOCFILE
-wget -O "$PACK/doc/Mandelbulber_Manual.pdf" $DOCFILE
+# copying makefiles into Apple standard Resources subfolders
+mkdir -vp "$RESOURCES/makefiles"
+cp -v "$SUPPORT/qmake/mandelbulber.pro" "$RESOURCES/makefiles/"
+cp -v "$SUPPORT/qmake/mandelbulber-opencl-mac.pro" "$RESOURCES/makefiles/"
+cp -v "$SUPPORT/qmake/common.pri" "$RESOURCES/makefiles/"
+# copying documentation files into standard Resources subfolders
+mkdir -vp "$RESOURCES/doc"
+cp -v "$SUPPORT/deploy/NEWS" "$RESOURCES/doc/"
+DOCFILE="$(curl -s https://github.com | grep browser_download_url | head -n 1 | cut -d '"' -f 4)"
+echo "Downloading manual from: $DOCFILE"
+wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE"
 #copy c++abi
 mkdir -p "$PACK/Contents/Frameworks/"
 cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
 cp "/usr/lib/libc++abi.1.dylib" "$PACK/Contents/Frameworks/"
 #rename to libc++abi.1.dylib
 cp "$PACK/Contents/Frameworks/libc++abi.dylib" "$PACK/Contents/Frameworks/libc++abi.1.dylib"
-cd $BUILD && macdeployqt mandelbulber2.app -dmg
+cd $BUILD && macdeployqt mandelbulber2.app -dmg -verbose=3
