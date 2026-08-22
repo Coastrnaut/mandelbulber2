@@ -16,8 +16,6 @@ jobs:
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
             sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
-            # Symlink the entire Apple Silicon Homebrew include tree to the legacy location
-            sudo ln -s /opt/homebrew/include/* /usr/local/include/
       - run:
           name: Build
           command: |
@@ -31,7 +29,9 @@ jobs:
             rm -rf $BUILD
             mkdir -p $BUILD
             # build operation
-            cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro
+            cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro \
+            QMAKE_CXXFLAGS+="-I/opt/homebrew/opt/opencl-headers/include" \
+            QMAKE_CFLAGS+="-I/opt/homebrew/opt/opencl-headers/include"
             cd $BUILD && make -j8
       - run:
           name: Pack
