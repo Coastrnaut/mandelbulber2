@@ -16,6 +16,10 @@ jobs:
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
             sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
+            # Fix OpenCL
+            mkdir -p  ~/mandelbulber2/build/OpenCL
+            git clone https://github.com/KhronosGroup/OpenCL-CLHPP.git ~/mandelbulber2/build/OpenCL
+            cp -vfr ~/mandelbulber2/build/OpenCL/include/CL/ ~/mandelbulber2/build/OpenCL
       - run:
           name: Build
           command: |
