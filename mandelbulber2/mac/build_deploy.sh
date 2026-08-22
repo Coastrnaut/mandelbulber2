@@ -14,7 +14,7 @@ tput bold ; echo ; echo '♻️ ' Check Homebrew Install ; tput sgr0 ; sleep 1
 if ls /usr/local/bin/ | grep brew > /dev/null ; then tput sgr0 ; echo "HomeBrew AllReady Installed" ; else tput bold ; echo "Installing HomeBrew" ; tput sgr0 ; /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" ; fi
 
 brew update
-brew install llvm qt5 gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
+brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
 
 # adam - Fix OpenCL
 mkdir -p  ~/mandelbulber2/build/OpenCL
