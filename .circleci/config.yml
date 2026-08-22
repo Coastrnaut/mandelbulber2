@@ -13,7 +13,7 @@ jobs:
             SRC=~/mandelbulber2/
             BUILD=$SRC/build/
             brew update
-            brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget opencl-clhpp-headers
+            brew install llvm qt gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
             # Create the expected directory structure if it doesn't exist
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
@@ -73,7 +73,7 @@ jobs:
             cp -v "$SUPPORT/deploy/NEWS" "$PACK/doc"
             DOCFILE="$(curl -s https://api.github.com/repos/buddhi1980/mandelbulber_doc/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)"
             echo $DOCFILE
-            wget -O "$SHARE/doc/Mandelbulber_Manual.pdf" $DOCFILE
+            wget -O "$PACK/doc/Mandelbulber_Manual.pdf" $DOCFILE
             #copy c++abi
             mkdir -p "$PACK/Contents/Frameworks/"
             cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
