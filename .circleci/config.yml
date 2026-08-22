@@ -74,19 +74,24 @@ jobs:
             # copying documentation files into standard Resources subfolders
             mkdir -vp "$RESOURCES/doc"
             cp -v "$SUPPORT/deploy/NEWS" "$RESOURCES/doc/"
-            DOCFILE="$(curl -s https://api.github.com/repos/mandelbulber/mandelbulber2/releases/latest | grep browser_download_url | grep -i '\.pdf' | head -n 1 | cut -d '"' -f 4)"
+            DOCFILE="$(curl -s https://api.github.com/repos/mandelbulber/mandelbulber2/releases/latest | grep browser_download_url | grep -i '\.pdf' | head -n 1 | cut -d '"' -f 4 || true)"
             echo "Downloading manual from: $DOCFILE"
             if [ -n "$DOCFILE" ]; then
-              wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE"
+              wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE" || echo "PDF manual download failed, continuing"
             else
               echo "No PDF manual found in latest release, skipping download"
             fi
-            # c++abicopy
+            # c++abicopy (files may not exist on macOS 12+ due to dyld shared cache)
             mkdir -p "$PACK/Contents/Frameworks/"
-            cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
-            cp "/usr/lib/libc++abi.1.dylib" "$PACK/Contents/Frameworks/"
-            #rename to libc++abi.1.dylib
-            cp "$PACK/Contents/Frameworks/libc++abi.dylib" "$PACK/Contents/Frameworks/libc++abi.1.dylib"
+            if [ -f "/usr/lib/libc++abi.dylib" ]; then
+              cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
+            fi
+            if [ -f "/usr/lib/libc++abi.1.dylib" ]; then
+              cp "/usr/lib/libc++abi.1.dylib" "$PACK/Contents/Frameworks/"
+            fi
+            if [ -f "$PACK/Contents/Frameworks/libc++abi.dylib" ]; then
+              cp "$PACK/Contents/Frameworks/libc++abi.dylib" "$PACK/Contents/Frameworks/libc++abi.1.dylib"
+            fi
             cd $BUILD && macdeployqt mandelbulber2.app -dmg -verbose=3
             #artifacts
             mkdir -p ~/mandelbulber2/build/artifacts/
