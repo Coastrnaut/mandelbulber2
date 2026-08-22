@@ -74,9 +74,13 @@ jobs:
             # copying documentation files into standard Resources subfolders
             mkdir -vp "$RESOURCES/doc"
             cp -v "$SUPPORT/deploy/NEWS" "$RESOURCES/doc/"
-            DOCFILE="$(curl -s https://github.com | grep browser_download_url | head -n 1 | cut -d '"' -f 4)"
+            DOCFILE="$(curl -s https://api.github.com/repos/mandelbulber/mandelbulber2/releases/latest | grep browser_download_url | grep -i '\.pdf' | head -n 1 | cut -d '"' -f 4)"
             echo "Downloading manual from: $DOCFILE"
-            wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE"
+            if [ -n "$DOCFILE" ]; then
+              wget -O "$RESOURCES/doc/Mandelbulber_Manual.pdf" "$DOCFILE"
+            else
+              echo "No PDF manual found in latest release, skipping download"
+            fi
             # c++abicopy
             mkdir -p "$PACK/Contents/Frameworks/"
             cp "/usr/lib/libc++abi.dylib" "$PACK/Contents/Frameworks/"
