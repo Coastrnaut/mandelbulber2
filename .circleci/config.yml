@@ -17,7 +17,8 @@ jobs:
             # Create the expected directory structure if it doesn't exist
             sudo mkdir -p /usr/local/opt
             # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
-            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm# Clean and recreate build directory structure
+            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
+            # Clean and recreate build directory structure
             rm -rf "$BUILD"
             rm -rf "$SRC/local_include"
             mkdir -p "$BUILD"
