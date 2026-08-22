@@ -23,7 +23,14 @@ jobs:
             export PATH="$QTDIR/bin:$PATH"
             export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
             export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
-            sh ~/mandelbulber2/mandelbulber2/mac/build_deploy.sh
+            SRC=~/mandelbulber2/
+            BUILD=$SRC/build/
+            # Clean build directory
+            rm -rf $BUILD
+            mkdir -p $BUILD
+            # build operation
+            cd $BUILD && qmake $SRC/mandelbulber2/qmake/mandelbulber-opencl-mac.pro
+            cd $BUILD && make -j8
       - run:
           name: Pack
           command: |
