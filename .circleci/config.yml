@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-and-pack:
     macos:
-      xcode: 26.6.0
+      xcode: 14.3.1
     working_directory: ~/mandelbulber2/
     steps:
       - checkout
@@ -12,6 +12,10 @@ jobs:
           command: |
             brew update
             brew install llvm qt5 gsl lzo jpeg libpng libtiff libsndfile tree p7zip wget
+            # Create the expected directory structure if it doesn't exist
+            sudo mkdir -p /usr/local/opt
+            # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
+            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
       - run:
           name: Build
           command: |
@@ -19,10 +23,6 @@ jobs:
             export PATH="$QTDIR/bin:$PATH"
             export LDFLAGS="-L$QTDIR/lib $LDFLAGS"
             export CPPFLAGS="-I$QTDIR/include $CPPFLAGS"
-            # Create the expected directory structure if it doesn't exist
-            sudo mkdir -p /usr/local/opt
-            # Symlink Apple Silicon Homebrew's LLVM path to the expected Intel location
-            sudo ln -s /opt/homebrew/opt/llvm /usr/local/opt/llvm
             sh ~/mandelbulber2/mandelbulber2/mac/build_deploy.sh
       - run:
           name: Pack
