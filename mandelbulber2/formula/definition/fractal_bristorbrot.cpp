@@ -33,7 +33,7 @@ void cFractalBristorbrot::FormulaCode(CVector4 &z, const sFractal *fractal, sExt
 
 	aux.DE = aux.DE * 2.0 * aux.r;
 	double newx = z.x * z.x - z.y * z.y - z.z * z.z;
-	double newy = z.y * (2.0 * z.x - z.z);
+	double newy = z.y * (2.001 * z.x - z.z);
 	double newz = z.z * (2.0 * z.x + z.y);
 	z.x = newx;
 	z.y = newy;
